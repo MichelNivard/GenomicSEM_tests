@@ -1,6 +1,6 @@
 ldsc <- function(traits, sample.prev, population.prev, ld, wld,
                 trait.names = NULL, sep_weights = FALSE, chr = 22,
-                n.blocks = 200, ldsc.log = NULL, stand = FALSE,select=FALSE,chisq.max = NA,intercept=TRUE) {
+                n.blocks = 200, ldsc.log = NULL, stand = FALSE,select=FALSE,chisq.max = NA,int.est=TRUE) {
   
   time <- proc.time()
   
@@ -219,13 +219,13 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         n.snps <- nrow(merged)
 
         ## ADD INTERCEPT:
+        if(int.est==TRUE){
         merged$intercept <- 1
-        merged$x.tot <- merged$L2
-        merged$x.tot.intercept <- 1
-
-        if(intercept==FALSE){
-          merged$intercept <- 0
+          merged$x.tot.intercept <- 1
           }
+        merged$x.tot <- merged$L2
+        
+
 
         #### MAKE WEIGHTS:
 
@@ -245,35 +245,42 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
 
 
         ## preweight LD and chi:
-
+        if(int.est==TRUE){
         weighted.LD <- as.matrix(cbind(merged$L2,merged$intercept)*merged$weights)
         weighted.chi <- as.matrix(merged$chi1*merged$weights)
+        }
 
-
+       if(int.est==FALSE){
+        weighted.LD <- as.matrix(merged$intercept*merged$weights)
+        weighted.chi <- as.matrix((merged$chi1-1) *merged$weights_cov)
+        }
+        
         ## Perfrom analysis:
 
         n.annot <- 1
-
-
+        if(int.est==TRUE){ inte <- 1}
+        if(int.est==FALSE){ inte <- 0}
         select.from <- floor(seq(from=1,to=n.snps,length.out =(n.blocks+1)))
         select.to <- c(select.from[2:n.blocks]-1,n.snps)
 
         xty.block.values <- matrix(data=NA,nrow=n.blocks,ncol =(n.annot+1))
-        xtx.block.values <- matrix(data=NA,nrow =((n.annot+1)* n.blocks),ncol =(n.annot+1))
+        xtx.block.values <- matrix(data=NA,nrow =((n.annot+inte)* n.blocks),ncol =(n.annot+inte))
         colnames(xty.block.values)<- colnames(xtx.block.values)<- colnames(weighted.LD)
-        replace.from <- seq(from=1,to=nrow(xtx.block.values),by =(n.annot+1))
-        replace.to <- seq(from =(n.annot+1),to=nrow(xtx.block.values),by =(n.annot+1))
+        replace.from <- seq(from=1,to=nrow(xtx.block.values),by =(n.annot+inte))
+        replace.to <- seq(from =(n.annot+inte),to=nrow(xtx.block.values),by =(n.annot+inte))
         for(i in 1:n.blocks){
           xty.block.values[i,] <- t(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.chi[select.from[i]:select.to[i],])
           xtx.block.values[replace.from[i]:replace.to[i],] <- as.matrix(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.LD[select.from[i]:select.to[i],])
         }
         xty <- as.matrix(colSums(xty.block.values))
-        xtx <- matrix(data=NA,nrow =(n.annot+1),ncol =(n.annot+1))
+        xtx <- matrix(data=NA,nrow =(n.annot+inte),ncol =(n.annot+inte))
         colnames(xtx)<- colnames(weighted.LD)
         for(i in 1:nrow(xtx)){xtx[i,] <- t(colSums(xtx.block.values[seq(from=i,to=nrow(xtx.block.values),by=ncol(weighted.LD)),]))}
 
         reg <- solve(xtx, xty)
+        if(int.est==TRUE){
         intercept <- reg[2]
+        }
         coefs <- reg[1]/N.bar
         reg.tot <- coefs*m
 
@@ -314,18 +321,22 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         }
 
         cov[j,j] <- reg.tot
+        if(int.est==TRUE){
         I[j,j] <- intercept
-
+        }
         lambda.gc <- median(merged$chi1) / qchisq(0.5, df = 1)
         mean.Chi <- mean(merged$chi1)
+        if(int.est==TRUE){
         ratio <- (intercept - 1) / (mean.Chi - 1)
         ratio.se <- intercept.se / (mean.Chi - 1)
-
+        }
         .LOG("Heritability Results for trait: ", chi1, file=log.file)
         .LOG("Mean Chi^2 across remaining SNPs: ", round(mean.Chi, 4), file=log.file)
         .LOG("Lambda GC: ", round(lambda.gc, 4), file=log.file)
+        if(int.est==TRUE){
         .LOG("Intercept: ", round(intercept, 4), " (", round(intercept.se, 4), ")", file=log.file)
         .LOG("Ratio: ", round(ratio, 4), " (", round(ratio.se, 4), ")", file=log.file)
+          }
         .LOG("Total Observed Scale h2: ", round(reg.tot, 4), " (", round(tot.se, 4), ")", file=log.file)
         .LOG("h2 Z: ", format(reg.tot / tot.se, digits = 3), file=log.file)
       }
@@ -353,13 +364,14 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         .LOG(n.snps, " SNPs remain after merging ", chi1, " and ", chi2, " summary statistics", file=log.file)
 
         ## ADD INTERCEPT:
+        if(int.est==TRUE){
         merged$intercept <- 1
-        merged$x.tot <- merged$L2
         merged$x.tot.intercept <- 1
+        }
+        merged$x.tot <- merged$L2
+        
 
-           if(intercept==FALSE){
-          merged$intercept <- 0
-          }
+         
 
 
         #### MAKE WEIGHTS:
@@ -392,35 +404,43 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         N.bar <- sqrt(mean(merged$N.x)*mean(merged$N.y))
 
         ## preweight LD and chi:
-
+        if(int.est==TRUE){
         weighted.LD <- as.matrix(cbind(merged$L2,merged$intercept)*merged$weights)
         weighted.chi <- as.matrix(merged$ZZ *merged$weights_cov)
-
+        }
+        if(int.est==FALSE){
+        weighted.LD <- as.matrix(merged$L2*merged$weights)
+        weighted.chi <- as.matrix((merged$ZZ-0) *merged$weights_cov)
+        }
+        
         ## Perfrom analysis:
 
 
         n.annot <- 1
-
+        if(int.est==TRUE){ inte <- 1}
+        if(int.est==FALSE){ inte <- 0}
 
         select.from <- floor(seq(from=1,to=n.snps,length.out =(n.blocks+1)))
         select.to <- c(select.from[2:n.blocks]-1,n.snps)
 
-        xty.block.values <- matrix(data=NA,nrow=n.blocks,ncol =(n.annot+1))
-        xtx.block.values <- matrix(data=NA,nrow =((n.annot+1)* n.blocks),ncol =(n.annot+1))
+        xty.block.values <- matrix(data=NA,nrow=n.blocks,ncol =(n.annot+inte))
+        xtx.block.values <- matrix(data=NA,nrow =((n.annot+inte)* n.blocks),ncol =(n.annot+inte))
         colnames(xty.block.values)<- colnames(xtx.block.values)<- colnames(weighted.LD)
-        replace.from <- seq(from=1,to=nrow(xtx.block.values),by =(n.annot+1))
-        replace.to <- seq(from =(n.annot+1),to=nrow(xtx.block.values),by =(n.annot+1))
+        replace.from <- seq(from=1,to=nrow(xtx.block.values),by =(n.annot+inte))
+        replace.to <- seq(from =(n.annot+1),to=nrow(xtx.block.values),by =(n.annot+inte))
         for(i in 1:n.blocks){
           xty.block.values[i,] <- t(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.chi[select.from[i]:select.to[i],])
           xtx.block.values[replace.from[i]:replace.to[i],] <- as.matrix(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.LD[select.from[i]:select.to[i],])
         }
         xty <- as.matrix(colSums(xty.block.values))
-        xtx <- matrix(data=NA,nrow =(n.annot+1),ncol =(n.annot+1))
+        xtx <- matrix(data=NA,nrow =(n.annot+inte),ncol =(n.annot+inte))
         colnames(xtx)<- colnames(weighted.LD)
         for(i in 1:nrow(xtx)){xtx[i,] <- t(colSums(xtx.block.values[seq(from=i,to=nrow(xtx.block.values),by=ncol(weighted.LD)),]))}
 
         reg <- solve(xtx, xty)
+        if(int.est==TRUE){
         intercept <- reg[2]
+        }
         coefs <- reg[1]/N.bar
         reg.tot <- coefs*m
 
@@ -441,7 +461,9 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
 
         jackknife.cov <- cov(pseudo.values)/n.blocks
         jackknife.se <- sqrt(diag(jackknife.cov))
+        if(int.est==TRUE){
         intercept.se <- jackknife.se[length(jackknife.se)]
+        }
         coef.cov <- jackknife.cov[1:n.annot,1:n.annot]/(N.bar^2)
         cat.cov <- coef.cov*(m %*% t(m))
         tot.cov <- sum(cat.cov)
@@ -451,8 +473,9 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         N.vec[1, s] <- N.bar
 
         cov[k, j] <- cov[j, k] <- reg.tot
+        if(int.est==TRUE){
         I[k, j] <- I[j, k] <- intercept
-
+        }
         .LOG("Results for genetic covariance between: ", chi1, " and ", chi2, file=log.file)
         .LOG("Mean Z*Z: ", round(mean(merged$ZZ), 4), file=log.file)
         .LOG("Cross trait Intercept: ", round(intercept, 4), " (", round(intercept.se, 4), ")", file=log.file)
