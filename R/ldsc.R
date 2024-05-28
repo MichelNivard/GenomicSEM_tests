@@ -223,7 +223,7 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         merged$x.tot <- merged$L2
         merged$x.tot.intercept <- 1
 
-        if(intercept=FALSE){
+        if(intercept==FALSE){
           merged$intercept <- 0
           }
 
@@ -357,7 +357,7 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         merged$x.tot <- merged$L2
         merged$x.tot.intercept <- 1
 
-           if(intercept=FALSE){
+           if(intercept==FALSE){
           merged$intercept <- 0
           }
 
