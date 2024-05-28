@@ -1,6 +1,6 @@
 ldsc <- function(traits, sample.prev, population.prev, ld, wld,
                 trait.names = NULL, sep_weights = FALSE, chr = 22,
-                n.blocks = 200, ldsc.log = NULL, stand = FALSE,select=FALSE,chisq.max = NA) {
+                n.blocks = 200, ldsc.log = NULL, stand = FALSE,select=FALSE,chisq.max = NA,intercept=TRUE) {
   
   time <- proc.time()
   
@@ -223,6 +223,9 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         merged$x.tot <- merged$L2
         merged$x.tot.intercept <- 1
 
+        if(intercept=FALSE){
+          merged$intercept <- 0
+          }
 
         #### MAKE WEIGHTS:
 
@@ -353,6 +356,10 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         merged$intercept <- 1
         merged$x.tot <- merged$L2
         merged$x.tot.intercept <- 1
+
+           if(intercept=FALSE){
+          merged$intercept <- 0
+          }
 
 
         #### MAKE WEIGHTS:
