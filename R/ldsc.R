@@ -270,7 +270,9 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         replace.to <- seq(from =(n.annot+inte),to=nrow(xtx.block.values),by =(n.annot+inte))
         for(i in 1:n.blocks){
           xty.block.values[i,] <- t(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.chi[select.from[i]:select.to[i],])
-          xtx.block.values[replace.from[i]:replace.to[i],] <- as.matrix(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.LD[select.from[i]:select.to[i],])
+          if(int.est==TRUE){ xtx.block.values[replace.from[i]:replace.to[i],] <- as.matrix(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.LD[select.from[i]:select.to[i],])}
+          if(int.est==FALSE){ xtx.block.values[i,] <- (t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.LD[select.from[i]:select.to[i],])}
+          
         }
         xty <- as.matrix(colSums(xty.block.values))
         xtx <- matrix(data=NA,nrow =(n.annot+inte),ncol =(n.annot+inte))
@@ -430,7 +432,8 @@ ldsc <- function(traits, sample.prev, population.prev, ld, wld,
         replace.to <- seq(from =(n.annot+1),to=nrow(xtx.block.values),by =(n.annot+inte))
         for(i in 1:n.blocks){
           xty.block.values[i,] <- t(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.chi[select.from[i]:select.to[i],])
-          xtx.block.values[replace.from[i]:replace.to[i],] <- as.matrix(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.LD[select.from[i]:select.to[i],])
+          if(int.est==TRUE){ xtx.block.values[replace.from[i]:replace.to[i],] <- as.matrix(t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.LD[select.from[i]:select.to[i],])}
+          if(int.est==FALSE){ xtx.block.values[i,] <- (t(weighted.LD[select.from[i]:select.to[i],])%*% weighted.LD[select.from[i]:select.to[i],])}
         }
         xty <- as.matrix(colSums(xty.block.values))
         xtx <- matrix(data=NA,nrow =(n.annot+inte),ncol =(n.annot+inte))
